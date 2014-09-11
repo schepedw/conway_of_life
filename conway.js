@@ -6,7 +6,6 @@ function Game(rows, columns, initialCells){
       game[i] = new Array(rows);
       for (var j =0; j < rows; j++){
         cell = $("<div class='cell'></div>");
-        cell.onClick
         game[i][j] = cell;
       }
     }
@@ -65,6 +64,7 @@ function Game(rows, columns, initialCells){
     $(".cell").remove();
   }
   function drawNewGeneration(){
+    var cellSize = 100.0 / columns;
     for (var i = 0; i < columns; i++){
       for (var j = 0; j < rows; j++){
         cell = currentState[i][j];
@@ -124,9 +124,20 @@ var initialCells = function (){
   ]
 }
 
-function button(){
-  var test = $('<button>Pause</button>');
-  test.click(function () { alert('hi'); });
+function button(game){
+  var test = $('<button>Start</button>');
+  test.click(function () { 
+    //hack. Better way to do this?
+    if ($(this).text() == 'Start'){
+      window.timer = setInterval(game.drawGeneration,10);
+      $(this).text('Pause');
+    }
+    else{
+      clearInterval(window.timer);
+      $(this).text('Start');
+      giveCellsListener();
+    }
+ });
   $(".gameSpace").append(test);
 }
 
@@ -135,13 +146,14 @@ $(document).ready(function(){
   var columns = 40;
   var rows = 11;
   var game = new Game(rows, columns, initialCells());
-  button();
-game.drawGeneration();
-  window.timer = setInterval(game.drawGeneration,10);
+  button(game);
+  giveCellsListener();
+  game.drawGeneration();
+});
+
+function giveCellsListener(){
   $('.cell').click(function(){
     console.log('clickedCell');
     $(this).toggleClass('alive');
   });
-});
-
-
+}
