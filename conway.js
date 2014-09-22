@@ -12,9 +12,9 @@ function Game(rows, columns, initialCells){
     return game;
   }
 
-  function populateCells(initialCells, initialState){
-    for (var i = 0;  i < initialCells.length; i++){
-      currentState[initialCells[i][0]][initialCells[i][1]].addClass("alive");
+  function populateCells(livingCells){
+    for (var i = 0;  i < livingCells.length; i++){
+      currentState[livingCells[i][0]][livingCells[i][1]].addClass("alive");
     }
   }
 
@@ -80,6 +80,14 @@ function Game(rows, columns, initialCells){
     removeOldGeneration();
     currentState = advanceGeneration(currentState);
     drawNewGeneration();
+    window.roundsDrawn++;
+    reportTiming(new Date().getTime());
+  }
+
+  function reportTiming(endTime){
+   elapsed = endTime - window.time;
+   avg = elapsed / roundsDrawn;
+   $('#avg_iteration').html(avg);
   }
 }
 
@@ -131,6 +139,8 @@ function button(game){
     if ($(this).text() == 'Start'){
       window.timer = setInterval(game.drawGeneration,10);
       $(this).text('Pause');
+      window.time = new Date().getTime();
+      window.roundsDrawn = 0;
     }
     else{
       clearInterval(window.timer);
