@@ -6,6 +6,9 @@ function Game(rows, columns, initialCells){
       game[i] = new Array(rows);
       for (var j =0; j < rows; j++){
         cell = $("<div class='cell'></div>");
+        cell.css("left", i * 20);
+        cell.css("bottom", j * 20);
+        $('.gameSpace').append(cell);
         game[i][j] = cell;
       }
     }
@@ -19,19 +22,19 @@ function Game(rows, columns, initialCells){
   }
 
   function advanceGeneration(currentState){
-    var nextState = emptyGame(rows, columns);
+    var newCells = [];
     for (var i = 0; i < columns; i++){
       for (var j = 0; j < rows; j++){
         var currentCell = currentState[i][j];
         if (currentCell.hasClass("alive") && !cellShouldDie(i, j)){
-          nextState[i][j].addClass("alive", 40);
+          newCells.push([i,j])
         }
         else if (!currentCell.hasClass("alive") && cellProcreateCheck(i, j)){
-          nextState[i][j].addClass("alive", 40);
+          newCells.push([i,j])
         }
       }
     }
-    return nextState;
+    return newCells;
   }
 
   function cellShouldDie(x, y){
@@ -60,35 +63,27 @@ function Game(rows, columns, initialCells){
     return livingNeighborCount(x, y) == 3;
   }
 
-  function removeOldGeneration(){
-    $(".cell").remove();
-  }
-  function drawNewGeneration(){
-    var cellSize = 100.0 / columns;
-    for (var i = 0; i < columns; i++){
-      for (var j = 0; j < rows; j++){
-        cell = currentState[i][j];
-        cell.css("left", i * 20);
-        cell.css("bottom", j * 20);
-        $('.gameSpace').append(cell);
-      }
-    }
-  }
-  currentState = emptyGame(rows, columns);
-  populateCells(initialCells, currentState);
-  this.drawGeneration = function(){
-    removeOldGeneration();
-    currentState = advanceGeneration(currentState);
-    drawNewGeneration();
-    window.roundsDrawn++;
-    reportTiming(new Date().getTime());
+  function drawNewGeneration(newCells){
+    $(".alive").toggleClass("alive");
+    populateCells(newCells);
   }
 
   function reportTiming(endTime){
    elapsed = endTime - window.time;
-   avg = elapsed / roundsDrawn;
-   $('#avg_iteration').html(avg);
+   avg = elapsed / roundsDrawn - window.timeInterval;
+   $('#avg_iteration').html(avg.toFixed(2) + 'ms / iteration (avg)');
   }
+
+  currentState = emptyGame(rows, columns);
+  populateCells(initialCells);
+
+  this.drawGeneration = function(){
+    newCells = advanceGeneration(currentState);
+    drawNewGeneration(newCells);
+    window.roundsDrawn++;
+    reportTiming(new Date().getTime());
+  }
+
 }
 
 var initialCells = function (){
@@ -137,7 +132,7 @@ function button(game){
   test.click(function () { 
     //hack. Better way to do this?
     if ($(this).text() == 'Start'){
-      window.timer = setInterval(game.drawGeneration,10);
+      window.timer = setInterval(game.drawGeneration, window.timeInterval);
       $(this).text('Pause');
       window.time = new Date().getTime();
       window.roundsDrawn = 0;
@@ -153,8 +148,9 @@ function button(game){
 
 $(document).ready(function(){
   // get game size from user?
-  var columns = 40;
-  var rows = 11;
+  var columns = 100;
+  var rows = 100;
+  window.timeInterval = 10;
   var game = new Game(rows, columns, initialCells());
   button(game);
   giveCellsListener();
