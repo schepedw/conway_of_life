@@ -1,13 +1,11 @@
-function Game(rows, columns, initialCells){
+function Game(rows, columns, livingCells){
 
   function emptyGame(rows, columns){ 
     game = new Array(columns);
     for (var i = 0; i < columns; i++) {
       game[i] = new Array(rows);
       for (var j =0; j < rows; j++){
-        cell = $("<div class='cell'></div>");
-        cell.css("left", i * 20);
-        cell.css("bottom", j * 20);
+        cell = createCell(i, j);
         $('.gameSpace').append(cell);
         game[i][j] = cell;
       }
@@ -15,26 +13,65 @@ function Game(rows, columns, initialCells){
     return game;
   }
 
-  function populateCells(livingCells){
+  function createCell(x, y){
+    cell = $("<div class='cell'></div>");
+    cell.css("left", x * 20);
+    cell.css("bottom", y * 20);
+    cell.click(function(){
+      if ($(this).hasClass('alive')){
+        livingCells = jQuery.grep(livingCells, function(value){
+          return !value.equals([x,y]);
+        });
+      }
+      else{
+        livingCells.push([x, y]);
+      }
+      $(this).toggleClass('alive');
+    });
+    return cell;
+    }
+
+
+  function populateCells(){
     for (var i = 0;  i < livingCells.length; i++){
       currentState[livingCells[i][0]][livingCells[i][1]].addClass("alive");
     }
   }
 
-  function advanceGeneration(currentState){
+  function advanceGeneration(){
     var newCells = [];
-    for (var i = 0; i < columns; i++){
-      for (var j = 0; j < rows; j++){
-        var currentCell = currentState[i][j];
-        if (currentCell.hasClass("alive") && !cellShouldDie(i, j)){
-          newCells.push([i,j])
-        }
-        else if (!currentCell.hasClass("alive") && cellProcreateCheck(i, j)){
-          newCells.push([i,j])
+    var currentX, currentY;
+    for (var i = 0; i < livingCells.length; i++){
+      var currentCell = livingCells[i];
+      currentX = currentCell[0];
+      currentY = currentCell[1];
+      for (var j = currentX - 1; j <= currentX + 1; j++){
+        for (var k = currentY - 1; k <= currentY + 1; k++){
+          if (!indexOutOfBounds(j,k) && cellAliveNextGen(j, k)){
+            newCells.push( [j, k] );
+          }
         }
       }
     }
     return newCells;
+  }
+
+
+  function cellAliveNextGen(x, y){
+    var currentCell = currentState[x][y];
+    if (currentCell.hasClass("checked")){
+      return false
+    }
+    currentCell.toggleClass("checked");
+    //memoize livingNeighborCount, pass it to functions
+    console.log("[" + x + ', '+y+'] has ' + livingNeighborCount(x,y) + 'neighbors');
+    if (currentCell.hasClass("alive") && !cellShouldDie(x, y)){
+      return true;
+    }
+    else if (!currentCell.hasClass("alive") && cellProcreateCheck(x, y)){
+      return true;
+    }
+    return false;
   }
 
   function cellShouldDie(x, y){
@@ -55,31 +92,35 @@ function Game(rows, columns, initialCells){
   }
 
   function livingNeighborAt(x, y){
-    if (x < 0 || y < 0) return false;
-    if (x >= columns || y >= rows) return false;
-    return currentState[x][y].hasClass("alive");
+    return !indexOutOfBounds(x, y) && currentState[x][y].hasClass("alive");
+  }
+
+  function indexOutOfBounds(x, y){
+    if (x < 0 || y < 0) return true;
+    if (x >= columns || y >= rows) return true;
+    return false;
   }
   function cellProcreateCheck(x, y){
     return livingNeighborCount(x, y) == 3;
   }
 
-  function drawNewGeneration(newCells){
-    $(".alive").toggleClass("alive");
-    populateCells(newCells);
+  function drawNewGeneration(){
+    $(".checked").toggleClass("checked");
+    $(".alive, .checked").removeClass('alive').removeClass('checked');
+    populateCells();
   }
 
   function reportTiming(endTime){
-   elapsed = endTime - window.time;
-   avg = elapsed / roundsDrawn - window.timeInterval;
-   $('#avg_iteration').html(avg.toFixed(2) + 'ms / iteration (avg)');
+    elapsed = endTime - window.time;
+    avg = elapsed / roundsDrawn - window.timeInterval;
+    $('#avg_iteration').html(avg.toFixed(2) + 'ms / iteration (avg)');
   }
 
   currentState = emptyGame(rows, columns);
-  populateCells(initialCells);
-
+  populateCells();
   this.drawGeneration = function(){
-    newCells = advanceGeneration(currentState);
-    drawNewGeneration(newCells);
+    livingCells = advanceGeneration();
+    drawNewGeneration();
     window.roundsDrawn++;
     reportTiming(new Date().getTime());
   }
@@ -87,7 +128,15 @@ function Game(rows, columns, initialCells){
 }
 
 var initialCells = function (){
-  return [
+  return [ /*
+    [0,0],
+    [0,1],
+    [0,2],
+    [1,0],
+    [1,2],
+    [2,0],
+    [2,1],
+    [2,2]*/
     [1,4],
     [2,4],
     [1,5],
@@ -140,26 +189,17 @@ function button(game){
     else{
       clearInterval(window.timer);
       $(this).text('Start');
-      giveCellsListener();
     }
- });
+  });
   $(".gameSpace").append(test);
 }
 
 $(document).ready(function(){
   // get game size from user?
-  var columns = 100;
-  var rows = 100;
+  var columns = 41;
+  var rows = 20;
   window.timeInterval = 10;
   var game = new Game(rows, columns, initialCells());
   button(game);
-  giveCellsListener();
-  game.drawGeneration();
 });
 
-function giveCellsListener(){
-  $('.cell').click(function(){
-    console.log('clickedCell');
-    $(this).toggleClass('alive');
-  });
-}
